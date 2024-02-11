@@ -6,10 +6,13 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-)
 
-import "github.com/godbus/dbus/v5"
-import log "github.com/sirupsen/logrus"
+	"libvirt.org/go/libvirt"
+
+	log "github.com/sirupsen/logrus"
+
+	dbus "github.com/godbus/dbus/v5"
+)
 
 func main() {
 	log.SetLevel(log.DebugLevel)
@@ -26,7 +29,7 @@ func main() {
 	defer conn.Close()
 
 	object := conn.Object("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement/Inhibit")
-	call := object.Call("org.freedesktop.PowerManagement.Inhibit.Inhibit", 0, "Custom Libvirt script", "Test")
+	call := object.Call("org.freedesktop.PowerManagement.Inhibit.Inhibit", 0, "Custom Libviccrt script", "Test")
 	fmt.Println(call.Body)
 	go func() {
 		for {
@@ -34,6 +37,28 @@ func main() {
 			time.Sleep(time.Second)
 		}
 	}()
+
+	// how to listen for libvirt event
+	libVirtConn, libVirtConErr := libvirt.NewConnect("qemu:///system")
+	if libVirtConErr != nil {
+		log.Error("Can't connect to libvirt")
+		os.Exit(1)
+	} else {
+		log.Debug("Succesfully connected to libvirt")
+	}
+	activeDomains, err := libVirtConn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
+	if err != nil {
+		log.Error("Can't list active domains")
+		os.Exit(1)
+	} else {
+		log.Debug("Succesfully listed active domains")
+	}
+	for _, domain := range activeDomains {
+		name, _ := domain.GetName()
+		log.WithFields(
+			log.Fields{"domain_name": name},
+		).Debug("Found active domain")
+	}
 
 	v, ok := <-ch
 	if !ok {
