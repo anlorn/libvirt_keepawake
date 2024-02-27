@@ -2,25 +2,31 @@ package main
 
 import (
 	"fmt"
+	"github.com/godbus/dbus/v5"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
 type DbusSleepInhibitorSuite struct {
 	suite.Suite
-	dbusProcess *os.Process
+	testDbusSocketPath string
+	dbusProcess        *os.Process
+	FakeDbusService    *FakeDbusService
+	SleepInhibitor     SleepInhibitor
 }
 
 func runDbusServer(socketPath string) (*os.Process, error) {
-	config := `<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+	config := fmt.Sprintf(`<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
 	"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
    <busconfig>
-   <listen>unix:path=/tmp/test.socket</listen>
+   <listen>unix:path=%s</listen>
    <auth>EXTERNAL</auth>
    <apparmor mode="disabled"/>
    
@@ -30,7 +36,7 @@ func runDbusServer(socketPath string) (*os.Process, error) {
 	  <allow user='*'/>
 	</policy>   
    </busconfig>
-   `
+   `, socketPath)
 	cfgFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		return nil, err
@@ -51,17 +57,33 @@ func runDbusServer(socketPath string) (*os.Process, error) {
 
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
 	fmt.Println("qqq")
-	dbusProcess, err := runDbusServer("/tmp/dbus-test")
+	testDbusSocketPath := fmt.Sprintf("/tmp/dbus-test-%s.socket", uuid.New())
+	dbusProcess, err := runDbusServer(testDbusSocketPath)
 	if err != nil {
 		s.T().Fatalf("Can't start dbus server. Err %s", err)
 		fmt.Println(err)
 	}
 	s.dbusProcess = dbusProcess
 	fmt.Printf("Started dbus with PID %d", dbusProcess.Pid)
+	dbusSocketPath := fmt.Sprintf("unix:path=%s", testDbusSocketPath)
+	time.Sleep(1 * time.Second) // TODO think about better solution
+	conn, err := dbus.Connect(dbusSocketPath)
+	if err != nil {
+		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
+	}
+	s.FakeDbusService = NewFakeDbusService(conn)
+
+	conn, err = dbus.Connect(dbusSocketPath)
+	if err != nil {
+		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
+	}
+	s.SleepInhibitor = NewDbusSleepInhibitor(conn)
 }
 
 func (s *DbusSleepInhibitorSuite) TearDownSuite() {
+	s.FakeDbusService.Stop()
 	s.dbusProcess.Kill()
+	os.Remove(s.testDbusSocketPath)
 	fmt.Println("TearDownSuite")
 }
 
@@ -70,7 +92,10 @@ func (s *DbusSleepInhibitorSuite) SetupTest() {
 }
 
 func (s *DbusSleepInhibitorSuite) TestInhibit() {
-	assert.Equal(s.T(), false, false)
+	cookie, success, err := s.SleepInhibitor.Inhibit("test")
+	assert.Equal(s.T(), 1, cookie)
+	assert.True(s.T(), success)
+	assert.NoError(s.T(), err)
 }
 
 func (s *DbusSleepInhibitorSuite) TestUninhibit() {
