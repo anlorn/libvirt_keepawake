@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/godbus/dbus/v5"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -22,6 +21,9 @@ type DbusSleepInhibitorSuite struct {
 	SleepInhibitor     SleepInhibitor
 }
 
+/*
+runDbusServer starts dbus server with given socket path and return process
+*/
 func runDbusServer(socketPath string) (*os.Process, error) {
 	config := fmt.Sprintf(`<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
 	"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
@@ -37,7 +39,7 @@ func runDbusServer(socketPath string) (*os.Process, error) {
 	</policy>   
    </busconfig>
    `, socketPath)
-	cfgFile, err := ioutil.TempFile("", "")
+	cfgFile, err := os.CreateTemp("", "")
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +58,10 @@ func runDbusServer(socketPath string) (*os.Process, error) {
 }
 
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
-	fmt.Println("qqq")
 	testDbusSocketPath := fmt.Sprintf("/tmp/dbus-test-%s.socket", uuid.New())
 	dbusProcess, err := runDbusServer(testDbusSocketPath)
 	if err != nil {
 		s.T().Fatalf("Can't start dbus server. Err %s", err)
-		fmt.Println(err)
 	}
 	s.dbusProcess = dbusProcess
 	fmt.Printf("Started dbus with PID %d", dbusProcess.Pid)
@@ -82,8 +82,13 @@ func (s *DbusSleepInhibitorSuite) SetupSuite() {
 
 func (s *DbusSleepInhibitorSuite) TearDownSuite() {
 	s.FakeDbusService.Stop()
-	s.dbusProcess.Kill()
-	os.Remove(s.testDbusSocketPath)
+	if err := s.dbusProcess.Kill(); err != nil {
+		fmt.Printf("Can't kill dbus server with PID %d. Err %s", s.dbusProcess.Pid, err)
+
+	}
+	if err := os.Remove(s.testDbusSocketPath); err != nil {
+		fmt.Printf("Can't remove socket file %s. Err %s", s.testDbusSocketPath, err)
+	}
 	fmt.Println("TearDownSuite")
 }
 
@@ -98,7 +103,7 @@ func (s *DbusSleepInhibitorSuite) TestInhibit() {
 	assert.NoError(s.T(), err)
 }
 
-func (s *DbusSleepInhibitorSuite) TestUninhibit() {
+func (s *DbusSleepInhibitorSuite) TestUninhibited() {
 	assert.Equal(s.T(), false, false)
 }
 
