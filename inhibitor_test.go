@@ -3,14 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/godbus/dbus/v5"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 )
 
 type DbusSleepInhibitorSuite struct {
@@ -34,9 +33,10 @@ func runDbusServer(socketPath string) (*os.Process, error) {
    
 	<policy context='default'>
 	  <allow send_destination='*' eavesdrop='true'/>
+      <allow own='org.freedesktop.PowerManagement'/>
 	  <allow eavesdrop='true'/>
 	  <allow user='*'/>
-	</policy>   
+	</policy>
    </busconfig>
    `, socketPath)
 	cfgFile, err := os.CreateTemp("", "")
@@ -59,13 +59,15 @@ func runDbusServer(socketPath string) (*os.Process, error) {
 
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
 	testDbusSocketPath := fmt.Sprintf("/tmp/dbus-test-%s.socket", uuid.New())
+	//testDbusSocketPath := "/tmp/dbus-test-b2b677ad-6db1-4190-8409-13eaa7668916.socket"
+	dbusSocketPath := fmt.Sprintf("unix:path=%s", testDbusSocketPath)
 	dbusProcess, err := runDbusServer(testDbusSocketPath)
 	if err != nil {
 		s.T().Fatalf("Can't start dbus server. Err %s", err)
 	}
 	s.dbusProcess = dbusProcess
 	fmt.Printf("Started dbus with PID %d", dbusProcess.Pid)
-	dbusSocketPath := fmt.Sprintf("unix:path=%s", testDbusSocketPath)
+
 	time.Sleep(1 * time.Second) // TODO think about better solution
 	conn, err := dbus.Connect(dbusSocketPath)
 	if err != nil {
@@ -78,13 +80,19 @@ func (s *DbusSleepInhibitorSuite) SetupSuite() {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
 	}
 	s.SleepInhibitor = NewDbusSleepInhibitor(conn)
+	err = s.FakeDbusService.Start()
+	if err != nil {
+		s.T().Fatalf("Can't start fake dbus service. Err %s", err)
+	}
 }
 
 func (s *DbusSleepInhibitorSuite) TearDownSuite() {
 	s.FakeDbusService.Stop()
-	if err := s.dbusProcess.Kill(); err != nil {
-		fmt.Printf("Can't kill dbus server with PID %d. Err %s", s.dbusProcess.Pid, err)
+	if s.dbusProcess != nil {
+		if err := s.dbusProcess.Kill(); err != nil {
+			fmt.Printf("Can't kill dbus server with PID %d. Err %s", s.dbusProcess.Pid, err)
 
+		}
 	}
 	if err := os.Remove(s.testDbusSocketPath); err != nil {
 		fmt.Printf("Can't remove socket file %s. Err %s", s.testDbusSocketPath, err)
@@ -98,7 +106,7 @@ func (s *DbusSleepInhibitorSuite) SetupTest() {
 
 func (s *DbusSleepInhibitorSuite) TestInhibit() {
 	cookie, success, err := s.SleepInhibitor.Inhibit("test")
-	assert.Equal(s.T(), 1, cookie)
+	assert.Equal(s.T(), uint32(1), cookie)
 	assert.True(s.T(), success)
 	assert.NoError(s.T(), err)
 }

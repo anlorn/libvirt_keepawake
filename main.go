@@ -24,7 +24,7 @@ func main() {
 		log.Error("Can't connect to session DBUS")
 		os.Exit(1)
 	} else {
-		log.Info("Succesfully connected to session DBUS")
+		log.Info("Successfully connected to session DBUS")
 	}
 	defer conn.Close()
 
@@ -44,14 +44,14 @@ func main() {
 		log.Error("Can't connect to libvirt")
 		os.Exit(1)
 	} else {
-		log.Debug("Succesfully connected to libvirt")
+		log.Debug("Successfully connected to libvirt")
 	}
 	activeDomains, err := libVirtConn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
 		log.Error("Can't list active domains")
 		os.Exit(1)
 	} else {
-		log.Debug("Succesfully listed active domains")
+		log.Debug("Successfully listed active domains")
 	}
 	for _, domain := range activeDomains {
 		name, _ := domain.GetName()

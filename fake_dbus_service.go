@@ -19,7 +19,7 @@ func (s *FakeDbusService) Start() error {
 	}
 	// Exposing our Inhibitor object to D-Bus
 	err = s.dbusConnection.Export(
-		s.inhibit,
+		s,
 		"/org/freedesktop/PowerManagement/Inhibit",
 		"org.freedesktop.PowerManagement.Inhibit",
 	)
@@ -31,14 +31,20 @@ func (s *FakeDbusService) Start() error {
 
 func (s *FakeDbusService) Stop() {
 	// Releasing the name on the bus
-	s.dbusConnection.ReleaseName("org.freedesktop.PowerManagement")
-	s.dbusConnection.Close()
+	_, err := s.dbusConnection.ReleaseName("org.freedesktop.PowerManagement")
+	if err != nil {
+		log.Warnf("Failed to release name: %v on test dbus", err)
+	}
+	err = s.dbusConnection.Close()
+	if err != nil {
+		log.Warnf("Failed to close connection: %v on test dbus", err)
+	}
 }
 
 // Inhibit is the method that will handle the Inhibit D-Bus calls.
-func (s *FakeDbusService) inhibit(appName string, reason string) (uint, *dbus.Error) {
+func (s *FakeDbusService) Inhibit(appName string, reason string) (uint32, *dbus.Error) {
 	log.Printf("Inhibit called with appName: %s, reason: %s", appName, reason)
 	// Implement your inhibition logic here
 	// The uint return value is typically a cookie to uniquely identify this inhibition request
-	return 100, nil
+	return uint32(1), nil
 }
