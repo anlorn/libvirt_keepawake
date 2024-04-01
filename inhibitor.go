@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/godbus/dbus/v5"
+	dbus "github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -9,12 +9,12 @@ const dbusDest string = "org.freedesktop.PowerManagement"
 const dbusPath dbus.ObjectPath = "/org/freedesktop/PowerManagement/Inhibit"
 
 type SleepInhibitor interface {
-	Inhibit(reason string) (cookie uint32, success bool, err error)
+	Inhibit(appName string) (cookie uint32, success bool, err error)
 	// GetInhibitors returns a list of current inhibitors where every element of the list is a string with application
 	// name which is inhibiting the sleep. This method is available for xfce4-power-manager and gnome-power-manager.
 	// but might not be available in other cases.
 	GetInhibitors() (inhibitors []string, err error)
-	UnInhibit(cookie uint32) (success bool, err error)
+	UnInhibit(cookie uint32) (err error)
 }
 
 type DbusSleepInhibitor struct {
@@ -27,13 +27,13 @@ func NewDbusSleepInhibitor(dbusConnection *dbus.Conn) SleepInhibitor {
 	}
 }
 
-func (d *DbusSleepInhibitor) Inhibit(reason string) (cookie uint32, success bool, err error) {
+func (d *DbusSleepInhibitor) Inhibit(appName string) (cookie uint32, success bool, err error) {
 	obj := d.dbusConnection.Object(
 		dbusDest,
 		dbusPath,
 	)
 	dBusMethod := "org.freedesktop.PowerManagement.Inhibit.Inhibit"
-	call := obj.Call(dBusMethod, 0, "YourAppName", reason)
+	call := obj.Call(dBusMethod, 0, appName, "VM is running")
 	if call.Err != nil {
 		logrus.Errorf("Can't call dBus method %s. Err %s", dBusMethod, call.Err)
 		return 0, false, call.Err
@@ -67,6 +67,16 @@ func (d *DbusSleepInhibitor) GetInhibitors() (inhibitors []string, err error) {
 	return inhibitors, nil
 }
 
-func (d *DbusSleepInhibitor) UnInhibit(cookie uint32) (success bool, err error) {
-	return false, nil
+func (d *DbusSleepInhibitor) UnInhibit(cookie uint32) (err error) {
+	dBusMethod := "org.freedesktop.PowerManagement.Inhibit.UnInhibit"
+	obj := d.dbusConnection.Object(dbusDest, dbusPath)
+	call := obj.Call(dBusMethod, 0, cookie)
+	if call.Err != nil {
+		logrus.Infof(
+			"Can't call DBUS dBusMethod %s. Might be okay if inhibitor doesn't exists. Err %s",
+			dBusMethod, call.Err,
+		)
+		return call.Err
+	}
+	return nil
 }

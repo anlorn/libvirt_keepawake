@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/godbus/dbus/v5"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
+
+	dbus "github.com/godbus/dbus/v5"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type DbusSleepInhibitorSuite struct {
@@ -109,10 +110,18 @@ func (s *DbusSleepInhibitorSuite) TestInhibit() {
 	assert.Equal(s.T(), uint32(1), cookie)
 	assert.True(s.T(), success)
 	assert.NoError(s.T(), err)
+
+	activeInhibitors, err := s.SleepInhibitor.GetInhibitors()
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), []string{"test"}, activeInhibitors)
+
+	dbusErr := s.SleepInhibitor.UnInhibit(cookie)
+	assert.NoError(s.T(), dbusErr)
 }
 
-func (s *DbusSleepInhibitorSuite) TestUninhibited() {
-	assert.Equal(s.T(), false, false)
+func (s *DbusSleepInhibitorSuite) TestUninhibitedNonExisting() {
+	dbusErr := s.SleepInhibitor.UnInhibit(9999)
+	assert.Errorf(s.T(), dbusErr, "org.freedesktop.PowerManagement.Inhibit.Error.InhibitorNotFound")
 }
 
 func TestRunDbusSleepInhibitorSuite(t *testing.T) {
