@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"libvirt.org/go/libvirt"
+	libvirtLibrary "libvirt.org/go/libvirt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,14 +34,14 @@ func main() {
 	sleepInhibitor := NewDbusSleepInhibitor(conn)
 
 	// how to listen for libvirt event
-	libVirtConn, libVirtConErr := libvirt.NewConnect("qemu:///system")
+	libVirtConn, libVirtConErr := libvirtLibrary.NewConnect("qemu:///system")
 	if libVirtConErr != nil {
 		log.Error("Can't connect to libvirt")
 		os.Exit(1)
 	} else {
 		log.Debug("Successfully connected to libvirt")
 	}
-	activeDomains, err := libVirtConn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
+	activeDomains, err := libVirtConn.ListAllDomains(libvirtLibrary.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
 		log.Error("Can't list active domains")
 		os.Exit(1)
