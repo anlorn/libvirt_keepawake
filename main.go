@@ -41,6 +41,8 @@ func main() {
 	} else {
 		log.Debug("Successfully connected to libvirt")
 	}
+	connAdapter := LibvirtConnectAdapter{libVirtConn}
+	NewLibvirtWatcher(&connAdapter)
 	activeDomains, err := libVirtConn.ListAllDomains(libvirtLibrary.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
 		log.Error("Can't list active domains")

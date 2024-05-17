@@ -8,15 +8,23 @@ import (
 
 type LibvirtWatcherSuite struct {
 	suite.Suite
-	libvirtConnect *libvirt.Connect
 }
 
 func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 	// prepare
-	watcher := NewLibvirtWatcher(s.libvirtConnect)
+	fakeLibvirtConnect := new(FakeLibvirtConnect)
+	domain1 := FakeLibvirtDomain{}
+	domain2 := FakeLibvirtDomain{}
+	domain1.On("GetName").Return("domain1", nil)
+	domain2.On("GetName").Return("domain2", nil)
+	fakeLibvirtConnect.On("ListAllDomains", libvirt.CONNECT_LIST_DOMAINS_ACTIVE).Return([]MinimalLibvirtDomain{
+		domain1,
+		domain2,
+	}, nil)
+	watcher := NewLibvirtWatcher(fakeLibvirtConnect)
 
 	// act
-	err, activeDomains := watcher.GetActiveDomains()
+	activeDomains, err := watcher.GetActiveDomains()
 
 	// assert
 	s.Assert().NoError(err)
