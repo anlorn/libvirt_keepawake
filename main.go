@@ -40,26 +40,31 @@ func main() {
 		os.Exit(1)
 	} else {
 		log.Debug("Successfully connected to libvirt")
+		defer func() {
+			_, err := libVirtConn.Close()
+			if err != nil {
+				log.Error("Can't close libvirt connection")
+			}
+		}()
 	}
 	connAdapter := LibvirtConnectAdapter{libVirtConn}
-	NewLibvirtWatcher(&connAdapter)
-	activeDomains, err := libVirtConn.ListAllDomains(libvirtLibrary.CONNECT_LIST_DOMAINS_ACTIVE)
+	watcher := NewLibvirtWatcher(&connAdapter)
+	activeDomainsNames, err := watcher.GetActiveDomains()
 	if err != nil {
 		log.Error("Can't list active domains")
 		os.Exit(1)
 	} else {
 		log.Debug("Successfully listed active domains")
 	}
-	for _, domain := range activeDomains {
-		name, _ := domain.GetName()
-		logWithDomain := log.WithFields(log.Fields{"domain_name": name})
+	for _, domainName := range activeDomainsNames {
+		logWithDomain := log.WithFields(log.Fields{"domain_name": domainName})
 		logWithDomain.Debug("Found active domain")
-		_, found := activeInhibitors[name]
+		_, found := activeInhibitors[domainName]
 		if found {
 			logWithDomain.Debug("Already inhibited")
 			continue
 		}
-		cookie, success, err := sleepInhibitor.Inhibit(name)
+		cookie, success, err := sleepInhibitor.Inhibit(domainName)
 		if err != nil {
 			logWithDomain.Error("Can't inhibit sleep")
 			continue
@@ -68,7 +73,7 @@ func main() {
 			logWithDomain.Info("Can't inhibit sleep")
 			continue
 		}
-		activeInhibitors[name] = cookie
+		activeInhibitors[domainName] = cookie
 	}
 
 	log.Info("Will wait for interrupt signal")

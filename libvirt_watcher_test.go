@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/stretchr/testify/suite"
-	"libvirt.org/go/libvirt"
 	"testing"
 )
 
@@ -12,15 +11,12 @@ type LibvirtWatcherSuite struct {
 
 func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 	// prepare
+	firstDomainName := "domain1"
+	secondDomainName := "domain2"
+	domain1 := FakeLibvirtDomain{firstDomainName}
+	domain2 := FakeLibvirtDomain{secondDomainName}
 	fakeLibvirtConnect := new(FakeLibvirtConnect)
-	domain1 := FakeLibvirtDomain{}
-	domain2 := FakeLibvirtDomain{}
-	domain1.On("GetName").Return("domain1", nil)
-	domain2.On("GetName").Return("domain2", nil)
-	fakeLibvirtConnect.On("ListAllDomains", libvirt.CONNECT_LIST_DOMAINS_ACTIVE).Return([]MinimalLibvirtDomain{
-		domain1,
-		domain2,
-	}, nil)
+	fakeLibvirtConnect.domains = []MinimalLibvirtDomain{domain1, domain2}
 	watcher := NewLibvirtWatcher(fakeLibvirtConnect)
 
 	// act
@@ -28,7 +24,7 @@ func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 
 	// assert
 	s.Assert().NoError(err)
-	s.Assert().EqualValues(activeDomains, []string{"domain1", "domain2"})
+	s.Assert().EqualValues(activeDomains, []string{firstDomainName, secondDomainName})
 
 }
 

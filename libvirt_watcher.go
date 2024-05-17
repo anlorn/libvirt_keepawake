@@ -40,8 +40,8 @@ type LibvirtWatcher struct {
 	// TODO interface
 }
 
-func NewLibvirtWatcher(connection MinimalLibvirtConnect) LibvirtWatcher {
-	return LibvirtWatcher{libvirtConnection: connection}
+func NewLibvirtWatcher(connection MinimalLibvirtConnect) *LibvirtWatcher {
+	return &LibvirtWatcher{libvirtConnection: connection}
 }
 
 func (c *LibvirtWatcher) GetActiveDomains() ([]string, error) {
