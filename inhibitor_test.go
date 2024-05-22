@@ -2,15 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"testing"
-	"time"
-
 	dbus "github.com/godbus/dbus/v5"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"os"
+	"testing"
 )
 
 type DbusSleepInhibitorSuite struct {
@@ -21,55 +17,10 @@ type DbusSleepInhibitorSuite struct {
 	SleepInhibitor     SleepInhibitor
 }
 
-/*
-runDbusServer starts dbus server with given socket path and return process
-*/
-func runDbusServer(socketPath string) (*os.Process, error) {
-	config := fmt.Sprintf(`<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
-	"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-   <busconfig>
-   <listen>unix:path=%s</listen>
-   <auth>EXTERNAL</auth>
-   <apparmor mode="disabled"/>
-   
-	<policy context='default'>
-	  <allow send_destination='*' eavesdrop='true'/>
-      <allow own='org.freedesktop.PowerManagement'/>
-	  <allow eavesdrop='true'/>
-	  <allow user='*'/>
-	</policy>
-   </busconfig>
-   `, socketPath)
-	cfgFile, err := os.CreateTemp("", "")
-	if err != nil {
-		return nil, err
-	}
-	if _, err := cfgFile.Write([]byte(config)); err != nil {
-		return nil, err
-	}
-	err = cfgFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	cmd := exec.Command("dbus-daemon", "--nofork", "--print-address", "--config-file", cfgFile.Name())
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return cmd.Process, err
-}
-
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
-	testDbusSocketPath := fmt.Sprintf("/tmp/dbus-test-%s.socket", uuid.New())
-	//testDbusSocketPath := "/tmp/dbus-test-b2b677ad-6db1-4190-8409-13eaa7668916.socket"
-	dbusSocketPath := fmt.Sprintf("unix:path=%s", testDbusSocketPath)
-	dbusProcess, err := runDbusServer(testDbusSocketPath)
-	if err != nil {
-		s.T().Fatalf("Can't start dbus server. Err %s", err)
-	}
+	dbusSocketPath, dbusProcess, err := RunDbusServer()
 	s.dbusProcess = dbusProcess
-	fmt.Printf("Started dbus with PID %d", dbusProcess.Pid)
 
-	time.Sleep(1 * time.Second) // TODO think about better solution
 	conn, err := dbus.Connect(dbusSocketPath)
 	if err != nil {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)

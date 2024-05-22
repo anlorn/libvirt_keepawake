@@ -1,5 +1,8 @@
 package main
 
+// Fake dbus service which listen for `org.freedesktop.PowerManagement` and track created inhibitors.
+// Intended for testing purposes only
+
 import (
 	"github.com/godbus/dbus/v5"
 )
@@ -10,6 +13,9 @@ type FakeDbusService struct {
 	activeInhibitors map[uint32]string
 }
 
+/*
+NewFakeDbusService create a dbus service which listen for `org.freedesktop.PowerManagement`
+*/
 func NewFakeDbusService(dbusConnection *dbus.Conn) *FakeDbusService {
 	service := &FakeDbusService{dbusConnection: dbusConnection}
 	service.activeInhibitors = make(map[uint32]string)
@@ -60,7 +66,7 @@ func (s *FakeDbusService) Inhibit(appName string, reason string) (uint32, *dbus.
 func (s *FakeDbusService) GetInhibitors() ([]string, *dbus.Error) {
 	log.Printf("GetInhibitors called")
 	// The string return value is typically a list of app names that are currently inhibiting sleep
-	var inhibitors []string
+	var inhibitors = []string{}
 	for _, appName := range s.activeInhibitors {
 		inhibitors = append(inhibitors, appName)
 	}
