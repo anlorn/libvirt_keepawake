@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/godbus/dbus/v5 v5.1.0
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0

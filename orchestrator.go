@@ -64,8 +64,13 @@ func (o *Orchestrator) Start() {
 			case <-o.done:
 				// TODO cleanup
 				log.Debug("Got stop signal for orchestrator, will clean all inhibitors")
+				for _, cookie := range o.currentInhibitorsCookies {
+					err := o.sleepInhibitor.UnInhibit(cookie)
+					if err != nil {
+						log.Errorf("Can't uninhibit sleep with err %s", err)
+					}
+				}
 				o.ticker.Stop()
-				return
 			}
 		}
 	}()
@@ -73,6 +78,7 @@ func (o *Orchestrator) Start() {
 
 // Stop stops main loop of the orchestrator and stop do a cleanup
 func (o *Orchestrator) Stop() {
-	o.done <- true
-	close(o.done)
+	if o.done != nil {
+		o.done <- true
+	}
 }
