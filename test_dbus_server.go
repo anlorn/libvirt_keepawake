@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"net"
 	"os"
 	"os/exec"
 	"time"
@@ -48,6 +49,26 @@ func startDBUSProcess(socketPath string) (*os.Process, error) {
 	return cmd.Process, err
 }
 
+func waitForDbusSocker(dbusSocketPath string) error {
+	timer := time.NewTimer(10 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("Can't connect to dbus server")
+		case <-ticker.C:
+			conn, err := net.Dial("unix", dbusSocketPath)
+			if err == nil {
+				errClose := conn.Close()
+				if errClose != nil {
+					log.Errorf("Can't close test connection to dbus server. Err %s", errClose)
+				}
+				return nil
+			}
+		}
+	}
+}
+
 /*
 RunDbusServer starts dbus server on a random socket and return socket path and dbus process.
 When  not needed server has be stopped by killing dbus process.
@@ -60,7 +81,15 @@ func RunDbusServer() (socketPath string, dbusProcess *os.Process, err error) {
 		log.Errorf("Can't start dbus server. Err %s", err)
 		return "", nil, err
 	}
-	fmt.Printf("Started dbus with PID %d", dbusProcess.Pid)
-	time.Sleep(1 * time.Second) // TODO think about better solution
+	err = waitForDbusSocker(testDbusSocketPath)
+	if err != nil {
+		log.Errorf("Can't connect to socker, dbus server is not running. Err %s", err)
+		errKill := dbusProcess.Kill()
+		if errKill != nil {
+			log.Errorf("Can't kill dbus process %d. Err %s", dbusProcess.Pid, errKill)
+		}
+		return "", nil, err
+	}
+	log.Infof("Started dbus with PID %d", dbusProcess.Pid)
 	return dbusSocketPath, dbusProcess, nil
 }
