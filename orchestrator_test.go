@@ -5,6 +5,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	_ "github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"os"
@@ -131,7 +132,7 @@ func (s *OrchestratorSuite) TestDuplicateDomains() {
 
 	// remove all duplicate domains
 	s.libvirtConnect.domains = []MinimalLibvirtDomain{}
-	// inhitibitor should be removed
+	// inhibitor should be removed
 	s.assertActiveInhibitors([]string{})
 
 }
@@ -154,7 +155,7 @@ func (s *OrchestratorSuite) TestUnInhibitOnDomainDeactivation() {
 }
 
 // TestMultipleDomainsActivation tests the orchestrator's ability to inhibit sleep when multiple domains are activated.
-// and then remove inhibitors when all domains are deactivated.'
+// and then remove inhibitors when all domains are deactivated.
 func (s *OrchestratorSuite) TestMultipleDomainsActivation() {
 	activeInhibitors, err := s.fakeDbusService.GetInhibitors()
 	// Assert that there are no errors.
@@ -179,7 +180,7 @@ func (s *OrchestratorSuite) TestMultipleDomainsActivation() {
 	s.libvirtConnect.domains = []MinimalLibvirtDomain{
 		FakeLibvirtDomain{"domain2"},
 	}
-	s.assertActiveInhibitors([]string{"domain1"})
+	s.assertActiveInhibitors([]string{"domain2"})
 
 	// deactivate all domains and check inhibitors are deactivated
 	s.libvirtConnect.domains = []MinimalLibvirtDomain{}
@@ -248,5 +249,6 @@ func (s *OrchestratorSuite) assertActiveInhibitors(expectedInhibitors []string) 
 }
 
 func TestRunOrchestratorSuite(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
 	suite.Run(t, new(OrchestratorSuite))
 }

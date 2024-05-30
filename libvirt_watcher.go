@@ -44,18 +44,14 @@ func NewLibvirtWatcher(connection MinimalLibvirtConnect) *LibvirtWatcher {
 	return &LibvirtWatcher{libvirtConnection: connection}
 }
 
-func (c *LibvirtWatcher) GetActiveDomains() ([]string, error) {
+func (c *LibvirtWatcher) GetActiveDomains() ([]MinimalLibvirtDomain, error) {
 	domains, err := c.libvirtConnection.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
 		return nil, err
 	}
-	domainsNames := make([]string, len(domains))
+	domainsNames := make([]MinimalLibvirtDomain, len(domains))
 	for i, domain := range domains {
-		domainName, err := domain.GetName()
-		if err != nil {
-			return nil, err
-		}
-		domainsNames[i] = domainName
+		domainsNames[i] = domain
 	}
 	return domainsNames, nil
 }
