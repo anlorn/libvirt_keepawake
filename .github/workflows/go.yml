@@ -28,11 +28,11 @@ jobs:
       with:
         version: v1.58
     - name: Build
-      run: go build -v ./...
+      run: make build
     - name: Test
-      run: go test -v ./...
+      run: make test
     - name: Upload Go Binary
       uses: actions/upload-artifact@v4
       with:
-        name: libvirt_keepawake_binary
-        path: libvirt_keepawake
+        name: libvirt_keepawake_test_binaries
+        path: /tmp/test_binaries
