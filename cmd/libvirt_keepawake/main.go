@@ -48,7 +48,7 @@ func main() {
 			}
 		}()
 	}
-	connAdapter := libvirt_watcher.LibvirtConnectAdapter{libVirtConn}
+	connAdapter := libvirt_watcher.LibvirtConnectAdapter{Connect: libVirtConn}
 	watcher := libvirt_watcher.NewLibvirtWatcher(&connAdapter)
 
 	ticker := time.NewTicker(10 * time.Second)
