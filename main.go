@@ -12,11 +12,9 @@ import (
 	dbus "github.com/godbus/dbus/v5"
 )
 
-var activeInhibitors = make(map[string]uint32)
-
 func main() {
 	log.SetLevel(log.DebugLevel)
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
 	conn, err := dbus.ConnectSessionBus()

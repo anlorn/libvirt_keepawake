@@ -158,6 +158,10 @@ as the domain name
 */
 func (o *Orchestrator) activateInhibitorForDomain(domain MinimalLibvirtDomain) error {
 	domainName, err := domain.GetName()
+	if err != nil {
+		log.Errorf("Can't get name of domain %s, err %s", domain, err)
+		return err
+	}
 	cookie, success, err := o.sleepInhibitor.Inhibit(domainName)
 	if err != nil {
 		log.Errorf("Can't inhibit sleep for domain %s with err %s", domainName, err)

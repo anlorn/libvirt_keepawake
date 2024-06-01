@@ -19,6 +19,9 @@ type DbusSleepInhibitorSuite struct {
 
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
 	dbusSocketPath, dbusProcess, err := RunDbusServer()
+	if err != nil {
+		s.T().Fatalf("Can't start dbus server. Err %s", err)
+	}
 	s.dbusProcess = dbusProcess
 
 	conn, err := dbus.Connect(dbusSocketPath)

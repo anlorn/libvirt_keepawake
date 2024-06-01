@@ -50,8 +50,6 @@ func (c *LibvirtWatcher) GetActiveDomains() ([]MinimalLibvirtDomain, error) {
 		return nil, err
 	}
 	domainsNames := make([]MinimalLibvirtDomain, len(domains))
-	for i, domain := range domains {
-		domainsNames[i] = domain
-	}
+	copy(domainsNames, domains)
 	return domainsNames, nil
 }

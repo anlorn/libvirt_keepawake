@@ -34,6 +34,9 @@ func (s *OrchestratorSuite) SetupTest() {
 
 	// Run a dbus server for testing and get the socket path and process.
 	dbusSocketPath, dbusProcess, err := RunDbusServer()
+	if err != nil {
+		s.T().Fatalf("Can't start dbus server. Err %s", err)
+	}
 	s.dbusProcess = dbusProcess
 
 	// Connect to the test dbus server.
