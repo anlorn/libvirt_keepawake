@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type LibvirtWatcherSuite struct {
@@ -24,7 +25,12 @@ func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 
 	// assert
 	s.Assert().NoError(err)
-	s.Assert().EqualValues(activeDomains, []string{firstDomainName, secondDomainName})
+	s.Assert().EqualValues(
+		activeDomains,
+		[]MinimalLibvirtDomain{
+			FakeLibvirtDomain{firstDomainName},
+			FakeLibvirtDomain{secondDomainName},
+		})
 
 }
 
