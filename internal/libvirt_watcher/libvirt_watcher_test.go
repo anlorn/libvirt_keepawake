@@ -1,4 +1,4 @@
-package main
+package libvirt_watcher
 
 import (
 	"testing"
@@ -14,10 +14,10 @@ func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 	// prepare
 	firstDomainName := "domain1"
 	secondDomainName := "domain2"
-	domain1 := FakeLibvirtDomain{firstDomainName}
-	domain2 := FakeLibvirtDomain{secondDomainName}
+	domain1 := FakeLibvirtDomain{Name: firstDomainName}
+	domain2 := FakeLibvirtDomain{Name: secondDomainName}
 	fakeLibvirtConnect := new(FakeLibvirtConnect)
-	fakeLibvirtConnect.domains = []MinimalLibvirtDomain{domain1, domain2}
+	fakeLibvirtConnect.Domains = []MinimalLibvirtDomain{domain1, domain2}
 	watcher := NewLibvirtWatcher(fakeLibvirtConnect)
 
 	// act
@@ -28,8 +28,8 @@ func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 	s.Assert().EqualValues(
 		activeDomains,
 		[]MinimalLibvirtDomain{
-			FakeLibvirtDomain{firstDomainName},
-			FakeLibvirtDomain{secondDomainName},
+			FakeLibvirtDomain{Name: firstDomainName},
+			FakeLibvirtDomain{Name: secondDomainName},
 		})
 
 }

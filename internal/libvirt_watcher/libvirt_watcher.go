@@ -1,4 +1,4 @@
-package main
+package libvirt_watcher
 
 import "libvirt.org/go/libvirt"
 
@@ -7,11 +7,11 @@ type MinimalLibvirtConnect interface {
 }
 
 type LibvirtConnectAdapter struct {
-	connect *libvirt.Connect
+	Connect *libvirt.Connect
 }
 
 func (a *LibvirtConnectAdapter) ListAllDomains(flags libvirt.ConnectListAllDomainsFlags) ([]MinimalLibvirtDomain, error) {
-	domains, err := a.connect.ListAllDomains(flags)
+	domains, err := a.Connect.ListAllDomains(flags)
 	if err != nil {
 		return nil, err
 	}

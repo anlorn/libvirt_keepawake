@@ -1,4 +1,4 @@
-package main
+package dbus_inhibitor
 
 // Fake dbus service which listen for `org.freedesktop.PowerManagement` and track created inhibitors.
 // Intended for testing purposes only
@@ -23,10 +23,10 @@ func NewFakeDbusService(dbusConnection *dbus.Conn) *FakeDbusService {
 }
 
 func (s *FakeDbusService) Start() error {
-	// Requesting a name on the bus
+	// Requesting a Name on the bus
 	reply, err := s.dbusConnection.RequestName("org.freedesktop.PowerManagement", dbus.NameFlagDoNotQueue)
 	if err != nil || reply != dbus.RequestNameReplyPrimaryOwner {
-		log.Fatalf("Failed to request name: %v on test dbus", err)
+		log.Fatalf("Failed to request Name: %v on test dbus", err)
 	}
 	// Exposing our Inhibitor object to D-Bus
 	err = s.dbusConnection.Export(
@@ -41,10 +41,10 @@ func (s *FakeDbusService) Start() error {
 }
 
 func (s *FakeDbusService) Stop() {
-	// Releasing the name on the bus
+	// Releasing the Name on the bus
 	_, err := s.dbusConnection.ReleaseName("org.freedesktop.PowerManagement")
 	if err != nil {
-		log.Warnf("Failed to release name: %v on test dbus", err)
+		log.Warnf("Failed to release Name: %v on test dbus", err)
 	}
 	err = s.dbusConnection.Close()
 	if err != nil {

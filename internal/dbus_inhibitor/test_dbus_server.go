@@ -1,4 +1,4 @@
-package main
+package dbus_inhibitor
 
 // Create a new session dbus server for testing purposes
 

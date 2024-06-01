@@ -1,8 +1,9 @@
-package main
+package internal
 
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"libvirt_keepawake/internal/libvirt_watcher"
 	"time"
 )
 
@@ -12,13 +13,13 @@ type InhibitorCookie uint32
 // Orchestrator Monitors all VMs and inhibits/uninhibits sleep when needed
 type Orchestrator struct {
 	sleepInhibitor           SleepInhibitor
-	libvirtWatcher           *LibvirtWatcher
+	libvirtWatcher           *libvirt_watcher.LibvirtWatcher
 	ticker                   *time.Ticker
 	done                     chan bool
 	currentInhibitorsCookies map[InhibitorName]InhibitorCookie
 }
 
-func NewOrchestrator(sleepInhibitor SleepInhibitor, libvirtWatcher *LibvirtWatcher, ticker *time.Ticker) *Orchestrator {
+func NewOrchestrator(sleepInhibitor SleepInhibitor, libvirtWatcher *libvirt_watcher.LibvirtWatcher, ticker *time.Ticker) *Orchestrator {
 	return &Orchestrator{
 		sleepInhibitor:           sleepInhibitor,
 		libvirtWatcher:           libvirtWatcher,
@@ -101,8 +102,8 @@ func (o *Orchestrator) Stop() {
 /*
 determineDomainsWithoutInhibitors determines all domains that don't have any active inhibitor
 */
-func (o *Orchestrator) determineDomainsWithoutInhibitors(domains []MinimalLibvirtDomain) ([]MinimalLibvirtDomain, error) {
-	var domainsWithoutInhibitors []MinimalLibvirtDomain
+func (o *Orchestrator) determineDomainsWithoutInhibitors(domains []libvirt_watcher.MinimalLibvirtDomain) ([]libvirt_watcher.MinimalLibvirtDomain, error) {
+	var domainsWithoutInhibitors []libvirt_watcher.MinimalLibvirtDomain
 	log.Debugf(
 		"Will determine domains without inhibitors. Domains: %v. Current Inhibitors: %v",
 		domains,
@@ -126,7 +127,7 @@ func (o *Orchestrator) determineDomainsWithoutInhibitors(domains []MinimalLibvir
 determineInhibitorsWithoutDomains determines all inhibitors that are not
 associated(doesn't have the same name as domain) with any domain
 */
-func (o *Orchestrator) determineInhibitorsWithoutDomains(domains []MinimalLibvirtDomain) ([]InhibitorName, error) {
+func (o *Orchestrator) determineInhibitorsWithoutDomains(domains []libvirt_watcher.MinimalLibvirtDomain) ([]InhibitorName, error) {
 	var inhibitorsWithoutDomains []InhibitorName
 	domainsMap := map[InhibitorName]bool{}
 	log.Debugf(
@@ -156,7 +157,7 @@ func (o *Orchestrator) determineInhibitorsWithoutDomains(domains []MinimalLibvir
 activateInhibitorForDomain activates an inhibitor for the given domain. Inhibitor name will be the same
 as the domain name
 */
-func (o *Orchestrator) activateInhibitorForDomain(domain MinimalLibvirtDomain) error {
+func (o *Orchestrator) activateInhibitorForDomain(domain libvirt_watcher.MinimalLibvirtDomain) error {
 	domainName, err := domain.GetName()
 	if err != nil {
 		log.Errorf("Can't get name of domain %s, err %s", domain, err)

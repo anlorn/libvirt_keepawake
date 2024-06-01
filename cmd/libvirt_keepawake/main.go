@@ -4,6 +4,8 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	libvirtLibrary "libvirt.org/go/libvirt"
+	"libvirt_keepawake/internal"
+	"libvirt_keepawake/internal/libvirt_watcher"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,7 +32,7 @@ func main() {
 			log.Error("Can't close DBUS connection")
 		}
 	}()
-	sleepInhibitor := NewDbusSleepInhibitor(conn)
+	sleepInhibitor := internal.NewDbusSleepInhibitor(conn)
 
 	// how to listen for libvirt event
 	libVirtConn, libVirtConErr := libvirtLibrary.NewConnect("qemu:///system")
@@ -46,12 +48,12 @@ func main() {
 			}
 		}()
 	}
-	connAdapter := LibvirtConnectAdapter{libVirtConn}
-	watcher := NewLibvirtWatcher(&connAdapter)
+	connAdapter := libvirt_watcher.LibvirtConnectAdapter{libVirtConn}
+	watcher := libvirt_watcher.NewLibvirtWatcher(&connAdapter)
 
 	ticker := time.NewTicker(10 * time.Second)
 
-	orchestrator := NewOrchestrator(sleepInhibitor, watcher, ticker)
+	orchestrator := internal.NewOrchestrator(sleepInhibitor, watcher, ticker)
 	orchestrator.Start()
 	defer func() {
 		log.Debug("Stopping orchestrator")
