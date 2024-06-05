@@ -19,7 +19,7 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
-	conn, err := dbus.ConnectSessionBus()
+	conn, err := dbus.SessionBusPrivateNoAutoStartup()
 	if err != nil {
 		log.Error("Can't connect to session DBUS")
 		os.Exit(1)
