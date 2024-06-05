@@ -1,8 +1,9 @@
+# Copyright 2024 Anton Tinyakov(anlorn@anlorn.com)
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
 
-inherit git-r3 go-module
+inherit go-module git-r3
 
 DESCRIPTION="An application to inhibit sleep when virtual machine is active"
 HOMEPAGE="https://github.com/anlorn/libvirt_keepawake"
@@ -15,11 +16,16 @@ KEYWORDS="~amd64"
 DEPEND="app-emulation/libvirt"
 BEPEND=">=dev-lang/go-1.22"
 
-src_prepare() {
-	default
-	go-module_live_vendor
+src_unpack() {
+    git-r3_src_unpack
+    go-module_live_vendor
+}
+
+src_compile() {
+    emake build
 }
 
 src_install() {
-	dobin libvirt_keepawake
+    dobin libvirt_keepawake
 }
+
