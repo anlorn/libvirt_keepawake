@@ -1,4 +1,4 @@
-binary_name := "libvirt_keepawake"
+binary_name := "libvirt-keepawake"
 
 all: lint test run
 

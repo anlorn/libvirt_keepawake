@@ -26,6 +26,6 @@ src_compile() {
 }
 
 src_install() {
-    dobin libvirt_keepawake
+    dobin libvirt-keepawake
 }
 
