@@ -55,6 +55,7 @@ func (o *Orchestrator) Start() {
 					continue
 				}
 				for _, domainWithoutInhibitor := range domainsWithoutInhibitors {
+					log.Debugf("Will actiave inhibitor for domain %s without inhibitor", domainWithoutInhibitor)
 					err := o.activateInhibitorForDomain(domainWithoutInhibitor)
 					if err != nil {
 						log.Errorf("Can't activate inhibitor for domain %s with err %s", domainWithoutInhibitor, err)

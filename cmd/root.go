@@ -35,15 +35,23 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.WithError(err).Error("Can't connect to session DBUS")
 			os.Exit(1)
-		} else {
-			log.Info("Successfully connected to session DBUS")
 		}
-		defer func() {
-			err := conn.Close()
-			if err != nil {
-				log.WithError(err).Error("Can't close DBUS connection")
-			}
-		}()
+		err = conn.Auth(nil)
+		if err != nil {
+			log.WithError(err).Error("Can't authenticate to DBUS")
+			os.Exit(1)
+		}
+		log.Debug("Successfully authenticated to DBUS")
+
+		err = conn.Hello()
+		if err != nil {
+			log.WithError(err).Error("Failed to send hello to DBUS after connection")
+			os.Exit(1)
+		}
+		log.Debug("Successfully sent hello to DBUS")
+
+		log.Info("Successfully connected to session DBUS")
+
 		sleepInhibitor := internal.NewDbusSleepInhibitor(conn)
 
 		// how to listen for libvirt event
@@ -70,6 +78,14 @@ var rootCmd = &cobra.Command{
 		defer func() {
 			log.Debug("Stopping orchestrator")
 			orchestrator.Stop()
+			// TODO fix	this
+			time.Sleep(5 * time.Second)
+			if conn != nil {
+				err := conn.Close()
+				if err != nil {
+					log.WithError(err).Error("Can't close DBUS connection")
+				}
+			}
 		}()
 		log.Info("Will wait for interrupt signal")
 		v, ok := <-ch

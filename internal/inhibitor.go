@@ -33,12 +33,14 @@ func (d *DbusSleepInhibitor) Inhibit(appName string) (cookie uint32, success boo
 		dbusPath,
 	)
 	dBusMethod := "org.freedesktop.PowerManagement.Inhibit.Inhibit"
-	call := obj.Call(dBusMethod, 0, appName, "VM is running")
-	if call.Err != nil {
-		logrus.Errorf("Can't call dBus method %s. Err %s", dBusMethod, call.Err)
-		return 0, false, call.Err
-	}
-	err = call.Store(&cookie)
+	logrus.Debugf("Will inhibit sleep for app %s by calling %s", appName, dBusMethod)
+	err = obj.Call(dBusMethod, 0, appName, "VM is running").Store(&cookie)
+	//if call.Err != nil {
+	//	logrus.Errorf("Can't call dBus method %s. Err %s", dBusMethod, call.Err)
+	//	return 0, false, call.Err
+	//}
+	logrus.Debugf("Called to inhibit sleep and got cookie: %d", cookie)
+	//err = call.Store(&cookie)
 	if err != nil {
 		logrus.Errorf("Can't retrieve or store cookie. Err %s", err)
 		return 0, false, err

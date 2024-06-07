@@ -1,6 +1,9 @@
 package libvirt_watcher
 
-import "libvirt.org/go/libvirt"
+import (
+	log "github.com/sirupsen/logrus"
+	"libvirt.org/go/libvirt"
+)
 
 type MinimalLibvirtConnect interface {
 	ListAllDomains(flags libvirt.ConnectListAllDomainsFlags) ([]MinimalLibvirtDomain, error)
@@ -32,6 +35,15 @@ type LibvirtDomainAdapter struct {
 
 func (a LibvirtDomainAdapter) GetName() (string, error) {
 	return a.domain.GetName()
+}
+
+func (a LibvirtDomainAdapter) String() string {
+	name, err := a.GetName()
+	if err != nil {
+		log.WithError(err).Error("Can't get name of domain")
+		return "unknown"
+	}
+	return name
 }
 
 type LibvirtWatcher struct {
