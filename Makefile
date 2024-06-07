@@ -4,7 +4,7 @@ all: lint test run
 
 .PHONY: build
 build:
-	go build -o ${binary_name} ./cmd/libvirt_keepawake
+	go build -o ${binary_name} .
 
 .PHONY: lint
 lint:
