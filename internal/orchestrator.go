@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"libvirt_keepawake/internal/dbus_inhibitor"
 	"libvirt_keepawake/internal/libvirt_watcher"
 	"time"
 )
@@ -12,14 +13,14 @@ type InhibitorCookie uint32
 
 // Orchestrator Monitors all VMs and inhibits/uninhibits sleep when needed
 type Orchestrator struct {
-	sleepInhibitor           SleepInhibitor
+	sleepInhibitor           dbus_inhibitor.SleepInhibitor
 	libvirtWatcher           *libvirt_watcher.LibvirtWatcher
 	ticker                   *time.Ticker
 	done                     chan bool
 	currentInhibitorsCookies map[InhibitorName]InhibitorCookie
 }
 
-func NewOrchestrator(sleepInhibitor SleepInhibitor, libvirtWatcher *libvirt_watcher.LibvirtWatcher, ticker *time.Ticker) *Orchestrator {
+func NewOrchestrator(sleepInhibitor dbus_inhibitor.SleepInhibitor, libvirtWatcher *libvirt_watcher.LibvirtWatcher, ticker *time.Ticker) *Orchestrator {
 	return &Orchestrator{
 		sleepInhibitor:           sleepInhibitor,
 		libvirtWatcher:           libvirtWatcher,
@@ -87,6 +88,8 @@ func (o *Orchestrator) Start() {
 					log.Infof("Uninhibited sleep on stopping for domain %s", domainName)
 				}
 				o.ticker.Stop()
+				// confirm that all inhibitors are uninhibited
+				o.done <- true
 				break
 			}
 		}
@@ -98,6 +101,10 @@ func (o *Orchestrator) Stop() {
 	if o.done != nil {
 		o.done <- true
 	}
+	// waiting confirmation that all inhibitors are uninhibited
+	log.Debug("Waiting for confirmation that all inhibitors are uninhibited")
+	<-o.done
+	log.Debug("All inhibitors are uninhibited")
 }
 
 /*

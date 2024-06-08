@@ -1,11 +1,10 @@
-package internal
+package dbus_inhibitor
 
 import (
 	"fmt"
 	dbus "github.com/godbus/dbus/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"libvirt_keepawake/internal/dbus_inhibitor"
 	"os"
 	"testing"
 )
@@ -14,12 +13,12 @@ type DbusSleepInhibitorSuite struct {
 	suite.Suite
 	testDbusSocketPath string
 	dbusProcess        *os.Process
-	FakeDbusService    *dbus_inhibitor.FakeDbusService
+	FakeDbusService    *FakeDbusService
 	SleepInhibitor     SleepInhibitor
 }
 
 func (s *DbusSleepInhibitorSuite) SetupSuite() {
-	dbusSocketPath, dbusProcess, err := dbus_inhibitor.RunDbusServer()
+	dbusSocketPath, dbusProcess, err := RunDbusServer()
 	if err != nil {
 		s.T().Fatalf("Can't start dbus server. Err %s", err)
 	}
@@ -29,7 +28,7 @@ func (s *DbusSleepInhibitorSuite) SetupSuite() {
 	if err != nil {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
 	}
-	s.FakeDbusService = dbus_inhibitor.NewFakeDbusService(conn)
+	s.FakeDbusService = NewFakeDbusService(conn)
 
 	conn, err = dbus.Connect(dbusSocketPath)
 	if err != nil {

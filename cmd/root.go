@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	libvirtLibrary "libvirt.org/go/libvirt"
 	"libvirt_keepawake/internal"
+	"libvirt_keepawake/internal/dbus_inhibitor"
 	"libvirt_keepawake/internal/libvirt_watcher"
 	"os"
 	"os/signal"
@@ -52,7 +53,7 @@ var rootCmd = &cobra.Command{
 
 		log.Info("Successfully connected to session DBUS")
 
-		sleepInhibitor := internal.NewDbusSleepInhibitor(conn)
+		sleepInhibitor := dbus_inhibitor.NewDbusSleepInhibitor(conn)
 
 		// how to listen for libvirt event
 		libVirtConn, libVirtConErr := libvirtLibrary.NewConnect("qemu:///system")
@@ -60,7 +61,7 @@ var rootCmd = &cobra.Command{
 			log.WithError(libVirtConErr).Error("Can't connect to libvirt")
 			os.Exit(1)
 		} else {
-			log.Debug("Successfully connected to libvirt")
+			log.Info("Successfully connected to libvirt")
 			defer func() {
 				_, err := libVirtConn.Close()
 				if err != nil {
@@ -78,8 +79,6 @@ var rootCmd = &cobra.Command{
 		defer func() {
 			log.Debug("Stopping orchestrator")
 			orchestrator.Stop()
-			// TODO fix	this
-			time.Sleep(5 * time.Second)
 			if conn != nil {
 				err := conn.Close()
 				if err != nil {
@@ -87,12 +86,9 @@ var rootCmd = &cobra.Command{
 				}
 			}
 		}()
-		log.Info("Will wait for interrupt signal")
-		v, ok := <-ch
-		if !ok {
-			fmt.Println(ok)
-		}
-		fmt.Println(v)
+		log.Debug("Will wait for interrupt signal")
+		<-ch
+		log.Infof("Exiting")
 	},
 }
 

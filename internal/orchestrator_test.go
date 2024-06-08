@@ -1,6 +1,14 @@
 package internal
 
 import (
+	"fmt"
+	"libvirt_keepawake/internal/dbus_inhibitor"
+	"libvirt_keepawake/internal/libvirt_watcher"
+	"os"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/godbus/dbus/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -8,17 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"libvirt_keepawake/internal/dbus_inhibitor"
-	"libvirt_keepawake/internal/libvirt_watcher"
-	"os"
-	"sort"
-	"testing"
-	"time"
 )
 
 type OrchestratorSuite struct {
 	suite.Suite
-	sleepInhibitor  SleepInhibitor
+	sleepInhibitor  dbus_inhibitor.SleepInhibitor
 	watcher         *libvirt_watcher.LibvirtWatcher
 	libvirtConnect  *libvirt_watcher.FakeLibvirtConnect
 	orchestrator    *Orchestrator
@@ -57,7 +59,7 @@ func (s *OrchestratorSuite) SetupTest() {
 	}
 
 	// Create a new dbus sleep inhibitor using the connected dbus connection.
-	s.sleepInhibitor = NewDbusSleepInhibitor(conn)
+	s.sleepInhibitor = dbus_inhibitor.NewDbusSleepInhibitor(conn)
 
 	// Start the fake dbus service.
 	err = s.fakeDbusService.Start()
@@ -66,7 +68,7 @@ func (s *OrchestratorSuite) SetupTest() {
 	}
 
 	// Create a new ticker with a 100ms interval.
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(500 * time.Millisecond)
 
 	// Create a new orchestrator using the sleep inhibitor, libvirt watcher, and ticker.
 	s.orchestrator = NewOrchestrator(s.sleepInhibitor, s.watcher, ticker)
@@ -96,7 +98,9 @@ func (s *OrchestratorSuite) TestInhibitOnDomainActivation() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// Simulate a domain activation by adding a domain to the libvirt connection.
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}},
+	)
 
 	// Wait for the orchestrator to process the domain activation.
 	s.assertActiveInhibitors([]string{"domain1"})
@@ -115,28 +119,35 @@ func (s *OrchestratorSuite) TestDuplicateDomains() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// Simulate a domain activation by adding a domain to the libvirt connection.
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}},
+	)
 
 	// Wait for the orchestrator to process the domain activation.
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	// activate second domain with the same name
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}, libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-	}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}, libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+		},
+	)
 	// check we still have only one inhibitor
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	// remove one of two duplicate domains
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-	}
-
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+		},
+	)
 	// check we still have inhibitor
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	// remove all duplicate domains
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{},
+	)
 	// inhibitor should be removed
 	s.assertActiveInhibitors([]string{})
 
@@ -151,11 +162,15 @@ func (s *OrchestratorSuite) TestUnInhibitOnDomainDeactivation() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// Simulate a domain activation by adding a domain to the libvirt connection.
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{libvirt_watcher.FakeLibvirtDomain{Name: "domain1"}},
+	)
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	// Deactivate the domain by removing it from the libvirt connection.
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{},
+	)
 	s.assertActiveInhibitors([]string{})
 }
 
@@ -169,26 +184,33 @@ func (s *OrchestratorSuite) TestMultipleDomainsActivation() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// activate first domain and check inhibitor is activated
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-	}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+		},
+	)
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	// activate second domain and check inhibitor is activated for both domains
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain2"},
-	}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain2"},
+		},
+	)
 	s.assertActiveInhibitors([]string{"domain1", "domain2"})
 
 	// Deactivate the first domain by removing it from the libvirt connection and check inhibitor is deactivated
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain2"},
-	}
+
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain2"},
+		},
+	)
 	s.assertActiveInhibitors([]string{"domain2"})
 
 	// deactivate all domains and check inhibitors are deactivated
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{}
+	s.libvirtConnect.UpdateActiveDomains([]libvirt_watcher.MinimalLibvirtDomain{})
 	s.assertActiveInhibitors([]string{})
 }
 
@@ -200,9 +222,11 @@ func (s *OrchestratorSuite) TestRemoveInhibitorsOnStoppingOrchestrator() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// activate first domain and check inhibitor is activated
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-	}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+		},
+	)
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	s.orchestrator.Stop()
@@ -218,9 +242,11 @@ func (s *OrchestratorSuite) TestAddInhibitorsOnStoppingOrchestrator() {
 	assert.Equal(s.T(), 0, len(activeInhibitors))
 
 	// activate first domain and check inhibitor is activated
-	s.libvirtConnect.Domains = []libvirt_watcher.MinimalLibvirtDomain{
-		libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
-	}
+	s.libvirtConnect.UpdateActiveDomains(
+		[]libvirt_watcher.MinimalLibvirtDomain{
+			libvirt_watcher.FakeLibvirtDomain{Name: "domain1"},
+		},
+	)
 	s.assertActiveInhibitors([]string{"domain1"})
 
 	s.orchestrator.Stop()
@@ -236,9 +262,10 @@ func (s *OrchestratorSuite) assertActiveInhibitors(expectedInhibitors []string) 
 	for {
 		select {
 		case <-ticker.C:
-			activeInhibitors, err := s.fakeDbusService.GetInhibitors()
+			activeInhibitors, err := s.sleepInhibitor.GetInhibitors()
 			assert.Nil(s.T(), err)
 			sort.Strings(activeInhibitors)
+			fmt.Println("active inhibitors", activeInhibitors)
 			// use this to compare inhibitors disregard of an order
 			sortTransformer := cmpopts.SortSlices(func(a, b string) bool { return a < b })
 			if cmp.Equal(expectedInhibitors, activeInhibitors, sortTransformer) {

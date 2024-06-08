@@ -1,4 +1,4 @@
-package internal
+package dbus_inhibitor
 
 import (
 	dbus "github.com/godbus/dbus/v5"

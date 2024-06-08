@@ -12,7 +12,7 @@ lint:
 
 .PHONY: test
 test:
-	go test -v -buildvcs -o /tmp/test_binaries/ ./...
+	go test -buildvcs -race -o /tmp/test_binaries/ ./...
 
 .PHONY: run
 run: build

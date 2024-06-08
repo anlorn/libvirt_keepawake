@@ -17,7 +17,9 @@ func (s *LibvirtWatcherSuite) TestGetActiveDomains() {
 	domain1 := FakeLibvirtDomain{Name: firstDomainName}
 	domain2 := FakeLibvirtDomain{Name: secondDomainName}
 	fakeLibvirtConnect := new(FakeLibvirtConnect)
-	fakeLibvirtConnect.Domains = []MinimalLibvirtDomain{domain1, domain2}
+	fakeLibvirtConnect.UpdateActiveDomains(
+		[]MinimalLibvirtDomain{domain1, domain2},
+	)
 	watcher := NewLibvirtWatcher(fakeLibvirtConnect)
 
 	// act

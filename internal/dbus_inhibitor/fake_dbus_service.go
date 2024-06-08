@@ -5,12 +5,14 @@ package dbus_inhibitor
 
 import (
 	"github.com/godbus/dbus/v5"
+	"sync"
 )
 import log "github.com/sirupsen/logrus"
 
 type FakeDbusService struct {
 	dbusConnection   *dbus.Conn
 	activeInhibitors map[uint32]string
+	mutex            sync.Mutex
 }
 
 /*
@@ -58,6 +60,8 @@ func (s *FakeDbusService) Inhibit(appName string, reason string) (uint32, *dbus.
 	// Implement your inhibition logic here
 	// The uint return value is typically a cookie to uniquely identify this inhibition request
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	cookie := uint32(len(s.activeInhibitors) + 1)
 	s.activeInhibitors[cookie] = appName
 	return cookie, nil
@@ -67,6 +71,8 @@ func (s *FakeDbusService) GetInhibitors() ([]string, *dbus.Error) {
 	log.Printf("GetInhibitors called")
 	// The string return value is typically a list of app names that are currently inhibiting sleep
 	var inhibitors = []string{}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	for _, appName := range s.activeInhibitors {
 		inhibitors = append(inhibitors, appName)
 	}
@@ -76,6 +82,8 @@ func (s *FakeDbusService) GetInhibitors() ([]string, *dbus.Error) {
 func (s *FakeDbusService) UnInhibit(cookie uint32) *dbus.Error {
 	log.Printf("UnInhibit called with cookie: %d", cookie)
 	// The bool return value is typically a success flag to indicate if the uninhibition was successful
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	if _, ok := s.activeInhibitors[cookie]; ok {
 		delete(s.activeInhibitors, cookie)
 		return nil
