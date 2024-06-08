@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Libvirt-keepawake
+Exec=sh -c "/usr/bin/libvirt-keepawake | /usr/bin/logger -t libvirt-keepawake -p local0.info"
+Terminal=false
+Type=Application
+
