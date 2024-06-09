@@ -29,8 +29,9 @@ var rootCmd = &cobra.Command{
 		} else {
 			log.SetLevel(log.InfoLevel)
 		}
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		termination := make(chan os.Signal, 1)
+		signal.Notify(termination, os.Interrupt, syscall.SIGTERM)
+		signal.Notify(termination, os.Interrupt, syscall.SIGHUP)
 
 		conn, err := dbus.SessionBusPrivateNoAutoStartup()
 		if err != nil {
@@ -86,8 +87,8 @@ var rootCmd = &cobra.Command{
 				}
 			}
 		}()
-		log.Debug("Will wait for interrupt signal")
-		<-ch
+		log.Debug("Will wait for SIGTERM/SIGHUP")
+		<-termination
 		log.Infof("Exiting")
 	},
 }
