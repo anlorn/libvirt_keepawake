@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=Libvirt-keepawake
+# We need to use "sh -c" to ensure signals like SIGKILL and SIGHUP are passed to application
 Exec=sh -c "exec /usr/bin/libvirt-keepawake | /usr/bin/logger -t libvirt-keepawake -p local0.info"
 Terminal=false
 Type=Application
