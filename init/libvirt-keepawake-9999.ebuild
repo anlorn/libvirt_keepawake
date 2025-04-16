@@ -14,7 +14,7 @@ SLOT="0"
 KEYWORDS="~amd64"
 
 DEPEND="app-emulation/libvirt"
-BEPEND=">=dev-lang/go-1.22"
+BEPEND=">=dev-lang/go-1.24"
 
 src_unpack() {
     git-r3_src_unpack
