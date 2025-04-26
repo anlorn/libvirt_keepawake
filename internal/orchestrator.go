@@ -1,11 +1,13 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"libvirt_keepawake/internal/dbus_inhibitor"
 	"libvirt_keepawake/internal/libvirt_watcher"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type InhibitorName string
@@ -34,8 +36,6 @@ func NewOrchestrator(sleepInhibitor dbus_inhibitor.SleepInhibitor, libvirtWatche
 func (o *Orchestrator) Start() {
 	o.done = make(chan bool)
 	go func() {
-		//var cookie uint32
-		//var success bool
 		for {
 			select {
 			case <-o.ticker.C:
@@ -90,7 +90,6 @@ func (o *Orchestrator) Start() {
 				o.ticker.Stop()
 				// confirm that all inhibitors are uninhibited
 				o.done <- true
-				break
 			}
 		}
 	}()
@@ -192,7 +191,7 @@ func (o *Orchestrator) deactivateInhibitor(name InhibitorName) error {
 	if !ok {
 		errMsg := fmt.Sprintf("Can't find cookie for inhibitor %s", name)
 		log.Error(errMsg)
-		return fmt.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 	err := o.sleepInhibitor.UnInhibit(uint32(cookie))
 	if err != nil {

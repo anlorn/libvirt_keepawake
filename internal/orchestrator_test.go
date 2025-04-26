@@ -12,7 +12,6 @@ import (
 	"github.com/godbus/dbus/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	_ "github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

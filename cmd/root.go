@@ -2,10 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/godbus/dbus/v5"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	libvirtLibrary "libvirt.org/go/libvirt"
 	"libvirt_keepawake/internal"
 	"libvirt_keepawake/internal/dbus_inhibitor"
 	"libvirt_keepawake/internal/libvirt_watcher"
@@ -13,6 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/godbus/dbus/v5"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	libvirtLibrary "libvirt.org/go/libvirt"
 )
 
 var rootCmd = &cobra.Command{

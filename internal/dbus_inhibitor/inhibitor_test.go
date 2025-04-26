@@ -2,11 +2,12 @@ package dbus_inhibitor
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	dbus "github.com/godbus/dbus/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"os"
-	"testing"
 )
 
 type DbusSleepInhibitorSuite struct {
@@ -24,21 +25,28 @@ func (s *DbusSleepInhibitorSuite) SetupSuite() {
 	}
 	s.dbusProcess = dbusProcess
 
+	s.FakeDbusService = s.runTestDbusService(dbusSocketPath)
+
 	conn, err := dbus.Connect(dbusSocketPath)
 	if err != nil {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
 	}
-	s.FakeDbusService = NewFakeDbusService(conn)
 
-	conn, err = dbus.Connect(dbusSocketPath)
-	if err != nil {
-		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
-	}
 	s.SleepInhibitor = NewDbusSleepInhibitor(conn)
 	err = s.FakeDbusService.Start()
 	if err != nil {
 		s.T().Fatalf("Can't start fake dbus service. Err %s", err)
 	}
+}
+
+func (s *DbusSleepInhibitorSuite) runTestDbusService(dbusSocketPath string) *FakeDbusService {
+	conn, err := dbus.Connect(dbusSocketPath)
+	if err != nil {
+		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
+	}
+	fakeDbusService := NewFakeDbusService(conn)
+
+	return fakeDbusService
 }
 
 func (s *DbusSleepInhibitorSuite) TearDownSuite() {
@@ -49,14 +57,12 @@ func (s *DbusSleepInhibitorSuite) TearDownSuite() {
 
 		}
 	}
-	if err := os.Remove(s.testDbusSocketPath); err != nil {
-		fmt.Printf("Can't remove socket file %s. Err %s", s.testDbusSocketPath, err)
-	}
-	fmt.Println("TearDownSuite")
-}
 
-func (s *DbusSleepInhibitorSuite) SetupTest() {
-	fmt.Println("SetupTest")
+	if _, err := os.Stat(s.testDbusSocketPath); err == nil {
+		if err := os.Remove(s.testDbusSocketPath); err != nil {
+			fmt.Printf("Can't remove socket file %s. Err %s", s.testDbusSocketPath, err)
+		}
+	}
 }
 
 func (s *DbusSleepInhibitorSuite) TestInhibit() {

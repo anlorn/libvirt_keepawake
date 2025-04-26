@@ -4,12 +4,13 @@ package dbus_inhibitor
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -55,13 +56,13 @@ func waitForDbusSocker(dbusSocketPath string) error {
 	for {
 		select {
 		case <-timer.C:
-			return fmt.Errorf("Can't connect to dbus server")
+			return fmt.Errorf("can't connect to dbus server")
 		case <-ticker.C:
 			conn, err := net.Dial("unix", dbusSocketPath)
 			if err == nil {
 				errClose := conn.Close()
 				if errClose != nil {
-					log.Errorf("Can't close test connection to dbus server. Err %s", errClose)
+					log.Errorf("can't close test connection to dbus server. Err %s", errClose)
 				}
 				return nil
 			}
