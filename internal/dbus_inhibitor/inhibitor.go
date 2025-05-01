@@ -18,17 +18,23 @@ type SleepInhibitor interface {
 }
 
 type DbusSleepInhibitor struct {
-	dbusConnection *dbus.Conn
+	dbusConnectionManager DbusConnectionManager
 }
 
-func NewDbusSleepInhibitor(dbusConnection *dbus.Conn) SleepInhibitor {
+func NewDbusSleepInhibitor(dbusConnection DbusConnectionManager) SleepInhibitor {
 	return &DbusSleepInhibitor{
-		dbusConnection: dbusConnection,
+		dbusConnectionManager: dbusConnection,
 	}
 }
 
 func (d *DbusSleepInhibitor) Inhibit(appName string) (cookie uint32, success bool, err error) {
-	obj := d.dbusConnection.Object(
+	connection, err := d.dbusConnectionManager.getConnection()
+	if err != nil {
+		logrus.Errorf("Can't get D-Bus connection. Err %s", err)
+		return 0, false, err
+	}
+
+	obj := connection.Object(
 		dbusDest,
 		dbusPath,
 	)
@@ -45,7 +51,14 @@ func (d *DbusSleepInhibitor) Inhibit(appName string) (cookie uint32, success boo
 }
 
 func (d *DbusSleepInhibitor) GetInhibitors() (inhibitors []string, err error) {
-	obj := d.dbusConnection.Object(
+	connection, err := d.dbusConnectionManager.getConnection()
+	if err != nil {
+		logrus.Errorf("Can't get D-Bus connection. Err %s", err)
+		return inhibitors, err
+	}
+
+	obj := connection.Object(
+
 		dbusDest,
 		dbusPath,
 	)
@@ -66,7 +79,12 @@ func (d *DbusSleepInhibitor) GetInhibitors() (inhibitors []string, err error) {
 
 func (d *DbusSleepInhibitor) UnInhibit(cookie uint32) (err error) {
 	dBusMethod := "org.freedesktop.PowerManagement.Inhibit.UnInhibit"
-	obj := d.dbusConnection.Object(dbusDest, dbusPath)
+	connection, err := d.dbusConnectionManager.getConnection()
+	if err != nil {
+		logrus.Errorf("Can't get D-Bus connection. Err %s", err)
+		return err
+	}
+	obj := connection.Object(dbusDest, dbusPath)
 	call := obj.Call(dBusMethod, 0, cookie)
 	if call.Err != nil {
 		logrus.Infof(

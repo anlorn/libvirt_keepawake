@@ -90,6 +90,7 @@ func (o *Orchestrator) Start() {
 				o.ticker.Stop()
 				// confirm that all inhibitors are uninhibited
 				o.done <- true
+				break
 			}
 		}
 	}()

@@ -57,8 +57,10 @@ func (s *OrchestratorSuite) SetupTest() {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
 	}
 
+	connectionManager := dbus_inhibitor.NewDbusConnectionManager(conn)
+
 	// Create a new dbus sleep inhibitor using the connected dbus connection.
-	s.sleepInhibitor = dbus_inhibitor.NewDbusSleepInhibitor(conn)
+	s.sleepInhibitor = dbus_inhibitor.NewDbusSleepInhibitor(*connectionManager)
 
 	// Start the fake dbus service.
 	err = s.fakeDbusService.Start()

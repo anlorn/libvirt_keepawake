@@ -55,7 +55,9 @@ var rootCmd = &cobra.Command{
 
 		log.Info("Successfully connected to session DBUS")
 
-		sleepInhibitor := dbus_inhibitor.NewDbusSleepInhibitor(conn)
+		connectionManager := dbus_inhibitor.NewDbusConnectionManager(conn)
+
+		sleepInhibitor := dbus_inhibitor.NewDbusSleepInhibitor(*connectionManager)
 
 		// how to listen for libvirt event
 		libVirtConn, libVirtConErr := libvirtLibrary.NewConnect("qemu:///system")
