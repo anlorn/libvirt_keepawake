@@ -32,7 +32,9 @@ func (s *DbusSleepInhibitorSuite) SetupSuite() {
 		s.T().Fatalf("Can't connect to test dbus server. Err %s", err)
 	}
 
-	s.SleepInhibitor = NewDbusSleepInhibitor(conn)
+	connectionManager := NewDbusConnectionManager(conn)
+
+	s.SleepInhibitor = NewDbusSleepInhibitor(*connectionManager)
 	err = s.FakeDbusService.Start()
 	if err != nil {
 		s.T().Fatalf("Can't start fake dbus service. Err %s", err)
